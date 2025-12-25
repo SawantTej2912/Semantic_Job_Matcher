@@ -786,6 +786,4 @@ SOFTWARE.
 
 **⭐ Star this repo if you find it helpful!**
 
-Made with ❤️ by [Your Name]
-
 </div>
