@@ -1,0 +1,6 @@
+
+requests
+confluent-kafka
+psycopg2-binary
+redis
+google-genai

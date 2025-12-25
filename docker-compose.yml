@@ -1,0 +1,130 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - KAFKA_BROKER=kafka:9092
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=jobs
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - kafka
+      - redis
+      - postgres
+    volumes:
+      - .:/app
+    working_dir: /app/backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: jobs
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  kafka_consumer:
+    build:
+      context: .
+      dockerfile: services/kafka/Dockerfile
+    container_name: kafka_consumer
+    command: [ "python", "-m", "services.kafka.consumer" ]
+    depends_on:
+      - kafka
+      - postgres
+      - redis
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=jobs
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - REDIS_HOST=redis
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PYTHONUNBUFFERED=1
+
+  kafka_producer:
+    build:
+      context: .
+      dockerfile: services/kafka/Dockerfile
+    container_name: kafka_producer
+    command: [ "python", "-m", "services.kafka.producer" ]
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - PYTHONUNBUFFERED=1
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  redis_client:
+    build:
+      context: ./services/redis
+      dockerfile: Dockerfile
+    container_name: redis_client
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+
+volumes:
+  postgres_data:
