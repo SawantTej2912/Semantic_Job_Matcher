@@ -760,19 +760,9 @@ SOFTWARE.
 - [x] Skill gap analysis
 - [x] Streamlit frontend UI
 
-### Planned 🚧
-- [ ] User authentication & profiles
-- [ ] Save favorite jobs
-- [ ] Job application tracking
-- [ ] Email notifications for new matches
-- [ ] Advanced filtering (salary, remote preferences)
-- [ ] Company profiles and reviews
-- [ ] Analytics dashboard
-- [ ] Mobile app (React Native)
-
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **RemoteOK** for providing the job data API
 - **Google** for Gemini AI and embedding models
